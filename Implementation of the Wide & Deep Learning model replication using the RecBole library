@@ -1,0 +1,41 @@
+from recbole.quick_start import run_recbole
+from recbole.config import Config
+from recbole.data import create_dataset, data_preparation
+from recbole.model.general_recommender import WideDeep
+from recbole.trainer import Trainer
+from recbole.utils import init_seed, init_logger, get_trainer, get_model
+
+# Configuration for the model
+config = Config(model='WideDeep', dataset='ml-1m', config_dict={
+    'embedding_size': 64,
+    'learning_rate': 0.001,
+    'train_batch_size': 256,
+    'epochs': 20,
+    'neg_sampling': None,  # Negative sampling is set to None
+    'loss_type': 'BPR',  # Using BPR loss for pairwise ranking
+    'optimizer': 'adam',
+    'mlp_hidden_size': [128, 64]  # Hidden layer sizes in the deep part
+})
+
+# Initialize seed for reproducibility
+init_seed(config['seed'], config['reproducibility'])
+
+# Create dataset and data loaders
+dataset = create_dataset(config)
+train_data, valid_data, test_data = data_preparation(config, dataset)
+
+# Initialize the model
+model = WideDeep(config, train_data.dataset).to(config['device'])
+
+# Initialize logger
+init_logger(config)
+
+# Trainer for the model
+trainer = get_trainer(config['MODEL_TYPE'], config, model)
+
+# Train the model
+best_valid_score, best_valid_result = trainer.fit(train_data, valid_data)
+
+# Evaluate the model
+test_result = trainer.evaluate(test_data)
+print("Test Results: ", test_result)
